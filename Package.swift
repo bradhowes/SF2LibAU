@@ -4,20 +4,22 @@
 import PackageDescription
 
 let package = Package(
-    name: "SF2LibAUv3",
-    products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
-        .library(
-            name: "SF2LibAUv3",
-            targets: ["SF2LibAUv3"]),
-    ],
-    targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
-        .target(
-            name: "SF2LibAUv3"),
-        .testTarget(
-            name: "SF2LibAUv3Tests",
-            dependencies: ["SF2LibAUv3"]),
-    ]
+  name: "SF2LibAU",
+  platforms: [.iOS(.v13), .macOS(.v10_15), .tvOS(.v12)],
+  products: [.library(name: "SF2LibAU", targets: ["SF2LibAU"])],
+  dependencies: [
+    // .package(url: "https://github.com/bradhowes/SF2Lib", branch: "main")
+    .package(path: "../SF2Lib"),
+    .package(url: "https://github.com/bradhowes/AUv3Support", branch: "main")
+  ],
+  targets: [
+    .target(name: "SF2LibAU", 
+            dependencies: [.product(name: "SF2Lib", package: "SF2Lib")],
+            swiftSettings: [.interoperabilityMode(.Cxx)]),
+    .testTarget(name: "SF2LibAUTests",
+                dependencies: ["SF2LibAU",
+                               .product(name: "AUv3-Support", package: "AUv3Support")],
+                swiftSettings: [.interoperabilityMode(.Cxx)])
+  ],
+  cxxLanguageStandard: .cxx20
 )
