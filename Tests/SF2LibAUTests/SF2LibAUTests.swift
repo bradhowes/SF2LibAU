@@ -4,7 +4,9 @@ import AUv3Support
 @testable import SF2LibAU
 
 final class SF2LibAUTests: XCTestCase {
-  static let sampleRate = 48_000
+  static let sampleRate: Double = 48_000.0
+  static let audioFormat: AVAudioFormat = .init(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 2,
+                                                interleaved: false)!
 
   // Make the number of frames to render the same as the sample rate to render 1 second of audio samples
   let frameCount: AVAudioFrameCount = .init(sampleRate)
@@ -13,20 +15,30 @@ final class SF2LibAUTests: XCTestCase {
                                                                    componentSubType: FourCharCode("sf2L"),
                                                                    componentManufacturer: FourCharCode("bray"),
                                                                    componentFlags: 0, componentFlagsMask: 0)
-  let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: Double(sampleRate), channels: 2, 
+  let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: Double(sampleRate), channels: 2,
                              interleaved: false)!
-  var stereoBufferList: UnsafeMutableAudioBufferListPointer!
+  var stereoBuffer: AVAudioPCMBuffer!
   var au: SF2LibAU!
+  var playedAudioExpectation: XCTestExpectation?
+  var player: AVAudioPlayer?
+  var audioFile: AVAudioFile? // = try makeAudioFile()
+  var framesRemaining: AVAudioFrameCount = 0
 
   override func setUp() async throws {
-    makeBufferList()
+    stereoBuffer = AVAudioPCMBuffer(pcmFormat: Self.audioFormat, frameCapacity: self.frameCount)
+    stereoBuffer.frameLength = 0
+    print("frameCapacity: \(stereoBuffer.frameCapacity)")
+    framesRemaining = self.frameCount
+
     au = try SF2LibAU(componentDescription: self.audioComponentDescription, options: [])
     au.maximumFramesToRender = self.frameCount
+    playedAudioExpectation = nil
+    player = nil
   }
 
   override func tearDown() {
-    freeBufferList()
     au = nil
+    stereoBuffer = nil
   }
 
   func testInitDoesNotThrow() throws {
@@ -60,62 +72,220 @@ final class SF2LibAUTests: XCTestCase {
 
   func testCanRender() throws {
     try au.allocateRenderResources()
-    let renderBlock = au.renderBlock
-    var flags: UInt32 = 0
-    var when: AudioTimeStamp = .init()
-    let status = renderBlock(&flags, &when, au.maximumFramesToRender, 0, stereoBufferList.unsafeMutablePointer, nil)
-    XCTAssertEqual(0, status)
+    XCTAssertEqual(0, doRender())
     XCTAssertEqual("", au.activePresetName)
   }
 
   func testCanLoadLibrary() throws {
-    let paths = getResources()
-    print(paths)
-    try au.allocateRenderResources()
-    let cmd = au.createLoadSysExec(path: paths[0].absoluteString, preset: 0)
-    if let block = au.scheduleMIDIEventBlock {
-      cmd.withUnsafeBytes { ptr in
-        if let bytes = ptr.baseAddress?.assumingMemoryBound(to: UInt8.self) {
-          let now: AUEventSampleTime = .min
-          let cable: UInt8 = 0
-          let byteCount: Int = cmd.count
-          block(now, cable, byteCount, bytes)
-        }
+    try prepareToRender(index: 1, preset: 0) {
+      let presetName = au.activePresetName
+      XCTAssertEqual("Nice Piano", presetName)
+    }
+  }
+
+  func testCanSetBankProgram() throws {
+    try prepareToRender(index: 0, preset: 0) {
+      let presetName1 = au.activePresetName
+      XCTAssertEqual("Piano 1", presetName1)
+      for (bank, program, expectedName) in [(0, 123, "Bird"), (8, 28, "Funk Gt."), (128, 25, "TR-808")] {
+        let cmds = au.createUseBankProgram(bank: UInt16(bank), program: UInt8(program))
+        XCTAssertTrue(sendMIDI(cmds: cmds))
+        XCTAssertEqual(0, doRender(for: 1))
+        let presetName = au.activePresetName
+        XCTAssertEqual(expectedName, presetName)
       }
     }
+  }
 
-    let renderBlock = au.renderBlock
-    var flags: UInt32 = 0
-    var when: AudioTimeStamp = .init()
-    let status = renderBlock(&flags, &when, au.maximumFramesToRender, 0, stereoBufferList.unsafeMutablePointer, nil)
-    XCTAssertEqual(0, status)
-    let presetName = au.activePresetName
-    XCTAssertEqual("Nice Piano", presetName)
+  func testCanUseIndex() throws {
+    try prepareToRender(index: 0, preset: 0) {
+      let presetName1 = au.activePresetName
+      XCTAssertEqual("Piano 1", presetName1)
+      for (preset, expectedName) in [(0, "Piano 1"), (128, "SynthBass101"), (180, "Church Org.2")] {
+        let cmd = au.createUseIndex(index: preset)
+        XCTAssertTrue(sendMIDI(cmd: cmd))
+        XCTAssertEqual(0, doRender(for: 1))
+        let presetName = au.activePresetName
+        XCTAssertEqual(expectedName, presetName)
+      }
+    }
+  }
+
+  func testCanPlayNote() throws {
+    try prepareToRender(index: 1, preset: 0) {
+      XCTAssertTrue(sendNoteOn(note: 0x40))
+      XCTAssertTrue(sendNoteOn(note: 0x44))
+      XCTAssertTrue(sendNoteOn(note: 0x47))
+      XCTAssertEqual(0, doRender(fraction: 0.5))
+      XCTAssertEqual(6, au.activeVoiceCount)
+      XCTAssertEqual(0, doRender())
+    }
+  }
+
+  func testCanSendResetCmdToCancelNotes() throws {
+    try prepareToRender(index: 1, preset: 0) {
+      XCTAssertTrue(sendNoteOn(note: 0x60))
+      XCTAssertEqual(0, doRender(fraction: 0.5))
+      XCTAssertEqual(2, au.activeVoiceCount)
+      let cmd = au.createResetCommand()
+      XCTAssertTrue(sendMIDI(cmd: cmd))
+      XCTAssertEqual(0, doRender(for: 1))
+      XCTAssertEqual(0, au.activeVoiceCount)
+    }
+  }
+
+  func testCanChangePhonicModes() throws {
+    try prepareToRender(index: 0, preset: 0) {
+      XCTAssertFalse(au.monophonicModeEnabled)
+      XCTAssertTrue(au.polyphonicModeEnabled)
+      XCTAssertTrue(sendMIDI(cmd: au.createChannelMessage(message: 0x7E, value: 1)))
+      XCTAssertEqual(0, doRender(fraction: 0.5))
+      XCTAssertTrue(au.monophonicModeEnabled)
+      XCTAssertFalse(au.polyphonicModeEnabled)
+      XCTAssertTrue(sendMIDI(cmd: au.createChannelMessage(message: 0x7F, value: 1)))
+      XCTAssertEqual(0, doRender())
+      XCTAssertFalse(au.monophonicModeEnabled)
+      XCTAssertTrue(au.polyphonicModeEnabled)
+    }
+  }
+
+  func testCanChangePanning() throws {
+    try prepareToRender(index: 0, preset: 0) {
+      XCTAssertTrue(sendMIDI(cmd: au.createChannelMessage(message: 0x0A, value: 0)))
+      XCTAssertTrue(sendNoteOn(note: 0x40))
+      XCTAssertEqual(0, doRender(fraction: 0.5))
+      XCTAssertTrue(sendMIDI(cmd: au.createChannelMessage(message: 0x0A, value: 0x7F)))
+      XCTAssertEqual(0, doRender())
+    }
   }
 }
 
-extension SF2LibAUTests {
+extension SF2LibAUTests: AVAudioPlayerDelegate {
 
   func getResources() -> [URL] {
     Bundle.module.urls(forResourcesWithExtension: "sf2", subdirectory: nil) ?? []
   }
 
-  func makeBufferList() {
-    let bufferSizeBytes = MemoryLayout<Float>.size * Int(self.frameCount)
-    let bufferList = AudioBufferList.allocate(maximumBuffers: 2)
-    for index in 0..<bufferList.count {
-      bufferList[index] = AudioBuffer(mNumberChannels: 1,
-                                      mDataByteSize: UInt32(bufferSizeBytes),
-                                      mData: malloc(bufferSizeBytes))
-    }
-    stereoBufferList = bufferList
+  func loadSF2(index: Int, preset: Int) throws {
+    let paths = getResources()
+    print(paths)
+    try au.allocateRenderResources()
+    let cmd = au.createLoadSysExec(path: paths[index].absoluteString, preset: preset)
+    XCTAssertTrue(sendMIDI(cmd: cmd))
+    XCTAssertEqual(0, doRender(for: 1))
   }
 
-  func freeBufferList() {
-    for buffer in stereoBufferList {
-      free(buffer.mData)
+  func sendMIDI(cmd: Data) -> Bool {
+    if let block = au.scheduleMIDIEventBlock {
+      return cmd.withUnsafeBytes { ptr in
+        if let bytes = ptr.baseAddress?.assumingMemoryBound(to: UInt8.self) {
+          let now: AUEventSampleTime = .min
+          let cable: UInt8 = 0
+          let byteCount: Int = cmd.count
+          block(now, cable, byteCount, bytes)
+          return true
+        }
+        return false
+      }
     }
-    free(stereoBufferList.unsafeMutablePointer)
-    stereoBufferList = nil
+    return false
+  }
+
+  func sendNoteOn(note: UInt8, velocity: UInt8 = 0x64) -> Bool {
+    let bytes: [UInt8] = [0x90, note, velocity];
+    return sendMIDI(bytes: bytes)
+  }
+
+  func sendNoteOff(note: UInt8) -> Bool {
+    let bytes: [UInt8] = [0x80, note, 0x00];
+    return sendMIDI(bytes: bytes)
+  }
+
+  func sendMIDI(bytes: [UInt8]) -> Bool {
+    if let block = au.scheduleMIDIEventBlock {
+      let now: AUEventSampleTime = .min
+      let cable: UInt8 = 0
+      block(now, cable, bytes.count, bytes)
+      return true
+    }
+    return false
+  }
+
+  func sendMIDI(cmds: [Data]) -> Bool {
+    for cmd in cmds {
+      guard sendMIDI(cmd: cmd) else { return false }
+    }
+    return true
+  }
+
+  func prepareToRender(index: Int, preset: Int, recording: Bool = false, block: () -> Void) throws {
+    try au.allocateRenderResources()
+    try loadSF2(index: index, preset: preset)
+    if (recording) {
+      self.audioFile = try makeAudioFile()
+    }
+    block()
+    if (recording) {
+      try playSamples()
+    }
+  }
+
+  func doRender(for frameCount: AVAudioFrameCount) -> AUAudioUnitStatus {
+    precondition(frameCount <= framesRemaining)
+    let renderBlock = au.renderBlock
+    var flags: UInt32 = 0
+    var when: AudioTimeStamp = .init()
+    let status = renderBlock(&flags, &when, frameCount, 0, stereoBuffer.mutableAudioBufferList, nil)
+    if status == noErr {
+      stereoBuffer.frameLength = frameCount
+      if let audioFile = self.audioFile {
+        try? audioFile.write(from: stereoBuffer)
+      }
+      framesRemaining -= frameCount
+    }
+    return status
+  }
+
+  func doRender(fraction: Float) -> AUAudioUnitStatus {
+    let frameCount: AVAudioFrameCount = .init(Float(framesRemaining) * fraction)
+    return doRender(for: frameCount)
+  }
+
+  func doRender() -> AUAudioUnitStatus { doRender(for: self.framesRemaining) }
+
+  func playSamples() throws {
+    guard let audioFile = self.audioFile else {
+      XCTFail("not configured to record samples")
+      return
+    }
+
+    playedAudioExpectation = self.expectation(description: "played samples")
+    let player = try AVAudioPlayer(contentsOf: audioFile.url)
+    player.delegate = self
+    player.play()
+    self.player = player
+    self.waitForExpectations(timeout: 30.0) { err in
+      if let err = err {
+        XCTFail("Expectation Failed with error: \(err)");
+      }
+    }
+  }
+
+  func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+    self.playedAudioExpectation?.fulfill()
+  }
+
+  var pathForTemporaryFile: String {
+    let uuid = UUID()
+    let result = NSTemporaryDirectory().appending("/" + uuid.uuidString + ".caf")
+    return result;
+  }
+
+  func makeAudioFile() throws -> AVAudioFile {
+    let path = URL(fileURLWithPath: pathForTemporaryFile)
+    var settings = stereoBuffer.format.settings
+    settings["AVLinearPCMIsNonInterleaved"] = 0
+    let file = try AVAudioFile(forWriting: path, settings: settings, commonFormat: .pcmFormatFloat32, interleaved: false)
+    return file
   }
 }

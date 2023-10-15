@@ -84,39 +84,31 @@ extension SF2LibAU {
     return engine.createLoadSysExec(std.string(path), preset)
   }
 
-  func createUseIndex(index: Int) -> Data? {
-    let blah = engine.createUseIndex(index)
-    return blah.withContiguousStorageIfAvailable { ptr in
-      return Data(buffer: ptr)
-    }
+  func createUseIndex(index: Int) -> Data {
+    return engine.createUseIndex(index)
   }
 
-  func createResetCommand() -> Data? {
-    let blah = engine.createResetCommand()
-    return blah.withContiguousStorageIfAvailable { ptr in
-      return Data(buffer: ptr)
-    }
+  func createResetCommand() -> Data {
+    return engine.createResetCommand()
   }
 
   func createUseBankProgram(bank: UInt16, program: UInt8) -> [Data] {
-    var msgs = [Data]()
-    let blah = engine.createUseBankProgram(bank, program)
-    for msg in blah {
-      if let data = msg.withContiguousStorageIfAvailable({ Data(buffer: $0) }) {
-        msgs.append(data)
-      }
-    }
-    return msgs
+    return engine.createUseBankProgram(bank, program)
   }
 
-  func createChannelMessage(message: UInt8, value: UInt8) -> Data? {
-    let blah = engine.createChannelMessage(message, value)
-    return blah.withContiguousStorageIfAvailable { ptr in
-      return Data(buffer: ptr)
-    }
+  func createChannelMessage(message: UInt8, value: UInt8) -> Data {
+    return engine.createChannelMessage(message, value)
   }
 
   var activePresetName: String { String(engine.activePresetName()).trimmingCharacters(in: .whitespaces) }
+
+  var activeVoiceCount: Int { return engine.activeVoiceCount() }
+
+  var monophonicModeEnabled: Bool { return engine.monophonicModeEnabled(); }
+  var polyphonicModeEnabled: Bool { return engine.polyphonicModeEnabled(); }
+  var oneVoicePerKeyModeEnabled: Bool { return engine.oneVoicePerKeyModeEnabled(); }
+  var retriggerModeEnabled: Bool { return engine.retriggerModeEnabled(); }
+  var portamentoModeEnabled: Bool { return engine.portamentoModeEnabled() }
 
   private func createBus(name: String, format: AVAudioFormat) throws -> AUAudioUnitBus {
     do {
