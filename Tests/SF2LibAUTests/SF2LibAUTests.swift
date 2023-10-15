@@ -69,19 +69,36 @@ final class SF2LibAUTests: XCTestCase {
   }
 
   func testCanLoadLibrary() throws {
-    let path = au.sampleSF2Path
-    print(path)
+    let paths = getResources()
+    print(paths)
     try au.allocateRenderResources()
+    let cmd = au.createLoadSysExec(path: paths[0].absoluteString, preset: 0)
+    if let block = au.scheduleMIDIEventBlock {
+      cmd.withUnsafeBytes { ptr in
+        if let bytes = ptr.baseAddress?.assumingMemoryBound(to: UInt8.self) {
+          let now: AUEventSampleTime = .min
+          let cable: UInt8 = 0
+          let byteCount: Int = cmd.count
+          block(now, cable, byteCount, bytes)
+        }
+      }
+    }
+
     let renderBlock = au.renderBlock
     var flags: UInt32 = 0
     var when: AudioTimeStamp = .init()
     let status = renderBlock(&flags, &when, au.maximumFramesToRender, 0, stereoBufferList.unsafeMutablePointer, nil)
     XCTAssertEqual(0, status)
-    XCTAssertEqual("", au.activePresetName)
+    let presetName = au.activePresetName
+    XCTAssertEqual("Nice Piano", presetName)
   }
 }
 
 extension SF2LibAUTests {
+
+  func getResources() -> [URL] {
+    Bundle.module.urls(forResourcesWithExtension: "sf2", subdirectory: nil) ?? []
+  }
 
   func makeBufferList() {
     let bufferSizeBytes = MemoryLayout<Float>.size * Int(self.frameCount)

@@ -19,7 +19,10 @@ let package = Package(
     .testTarget(name: "SF2LibAUTests",
                 dependencies: ["SF2LibAU",
                                .product(name: "AUv3-Support", package: "AUv3Support")],
-                swiftSettings: [.interoperabilityMode(.Cxx)])
+                resources: [
+                  .process("Resources"),
+                ],
+               swiftSettings: [.interoperabilityMode(.Cxx)])
   ],
   cxxLanguageStandard: .cxx20
 )
