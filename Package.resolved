@@ -8,15 +8,6 @@
         "branch" : "main",
         "revision" : "ede4cd5aa098456455c60700aefd272bc7c36cdc"
       }
-    },
-    {
-      "identity" : "sf2lib",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/bradhowes/SF2Lib",
-      "state" : {
-        "branch" : "main",
-        "revision" : "c9f5667e3f0fa6eb7917676cff60840ab34646de"
-      }
     }
   ],
   "version" : 2

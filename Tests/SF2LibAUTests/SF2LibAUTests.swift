@@ -90,7 +90,7 @@ final class SF2LibAUTests: XCTestCase {
       for (bank, program, expectedName) in [(0, 123, "Bird"), (8, 28, "Funk Gt."), (128, 25, "TR-808")] {
         let cmds = au.createUseBankProgram(bank: UInt16(bank), program: UInt8(program))
         XCTAssertTrue(sendMIDI(cmds: cmds))
-        XCTAssertEqual(0, doRender(for: 1))
+        XCTAssertEqual(0, doRender(for: 1024, recordToBuffer: false))
         let presetName = au.activePresetName
         XCTAssertEqual(expectedName, presetName)
       }
@@ -104,7 +104,7 @@ final class SF2LibAUTests: XCTestCase {
       for (preset, expectedName) in [(0, "Piano 1"), (128, "SynthBass101"), (180, "Church Org.2")] {
         let cmd = au.createUseIndex(index: preset)
         XCTAssertTrue(sendMIDI(cmd: cmd))
-        XCTAssertEqual(0, doRender(for: 1))
+        XCTAssertEqual(0, doRender(fraction: 0.3))
         let presetName = au.activePresetName
         XCTAssertEqual(expectedName, presetName)
       }
@@ -129,7 +129,7 @@ final class SF2LibAUTests: XCTestCase {
       XCTAssertEqual(2, au.activeVoiceCount)
       let cmd = au.createResetCommand()
       XCTAssertTrue(sendMIDI(cmd: cmd))
-      XCTAssertEqual(0, doRender(for: 1))
+      XCTAssertEqual(0, doRender(fraction: 0.5))
       XCTAssertEqual(0, au.activeVoiceCount)
     }
   }
@@ -162,17 +162,14 @@ final class SF2LibAUTests: XCTestCase {
 
 extension SF2LibAUTests: AVAudioPlayerDelegate {
 
-  func getResources() -> [URL] {
-    Bundle.module.urls(forResourcesWithExtension: "sf2", subdirectory: nil) ?? []
-  }
-
   func loadSF2(index: Int, preset: Int) throws {
-    let paths = getResources()
+    let paths = getSF2Resources()
     print(paths)
     try au.allocateRenderResources()
-    let cmd = au.createLoadSysExec(path: paths[index].absoluteString, preset: preset)
+    let path = paths[index].standardizedFileURL.absoluteString
+    let cmd = au.createLoadSysExec(path: path, preset: preset)
     XCTAssertTrue(sendMIDI(cmd: cmd))
-    XCTAssertEqual(0, doRender(for: 1))
+    XCTAssertEqual(0, doRender(for: 512, recordToBuffer: false))
   }
 
   func sendMIDI(cmd: Data) -> Bool {
@@ -230,13 +227,13 @@ extension SF2LibAUTests: AVAudioPlayerDelegate {
     }
   }
 
-  func doRender(for frameCount: AVAudioFrameCount) -> AUAudioUnitStatus {
+  func doRender(for frameCount: AVAudioFrameCount, recordToBuffer: Bool) -> AUAudioUnitStatus {
     precondition(frameCount <= framesRemaining)
     let renderBlock = au.renderBlock
     var flags: UInt32 = 0
     var when: AudioTimeStamp = .init()
     let status = renderBlock(&flags, &when, frameCount, 0, stereoBuffer.mutableAudioBufferList, nil)
-    if status == noErr {
+    if status == noErr && recordToBuffer {
       stereoBuffer.frameLength = frameCount
       if let audioFile = self.audioFile {
         try? audioFile.write(from: stereoBuffer)
@@ -248,10 +245,10 @@ extension SF2LibAUTests: AVAudioPlayerDelegate {
 
   func doRender(fraction: Float) -> AUAudioUnitStatus {
     let frameCount: AVAudioFrameCount = .init(Float(framesRemaining) * fraction)
-    return doRender(for: frameCount)
+    return doRender(for: frameCount, recordToBuffer: true)
   }
 
-  func doRender() -> AUAudioUnitStatus { doRender(for: self.framesRemaining) }
+  func doRender() -> AUAudioUnitStatus { doRender(for: self.framesRemaining, recordToBuffer: true) }
 
   func playSamples() throws {
     guard let audioFile = self.audioFile else {

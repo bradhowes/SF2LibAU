@@ -8,8 +8,8 @@ let package = Package(
   platforms: [.iOS(.v13), .macOS(.v10_15), .tvOS(.v12)],
   products: [.library(name: "SF2LibAU", targets: ["SF2LibAU"])],
   dependencies: [
-    .package(url: "https://github.com/bradhowes/SF2Lib", branch: "main"),
-    // .package(path: "../SF2Lib"),
+    // .package(url: "https://github.com/bradhowes/SF2Lib", branch: "main"),
+    .package(path: "../SF2Lib"),
     .package(url: "https://github.com/bradhowes/AUv3Support", branch: "main")
   ],
   targets: [
@@ -17,12 +17,9 @@ let package = Package(
             dependencies: [.product(name: "SF2Lib", package: "SF2Lib")],
             swiftSettings: [.interoperabilityMode(.Cxx)]),
     .testTarget(name: "SF2LibAUTests",
-                dependencies: ["SF2LibAU",
-                               .product(name: "AUv3-Support", package: "AUv3Support")],
-                resources: [
-                  .process("Resources"),
-                ],
-               swiftSettings: [.interoperabilityMode(.Cxx)])
+                dependencies: ["SF2LibAU", .product(name: "AUv3-Support", package: "AUv3Support")],
+                resources: [.process("Resources")],
+                swiftSettings: [.interoperabilityMode(.Cxx)])
   ],
   cxxLanguageStandard: .cxx20
 )
