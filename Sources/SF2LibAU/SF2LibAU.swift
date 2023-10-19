@@ -6,7 +6,7 @@ import os
 import SF2Lib
 
 /**
- AUv3 component for SF2Engine.
+ AUv3 component for SF2Lib engine.
  */
 public final class SF2LibAU: AUAudioUnit {
   private let log: OSLog
@@ -81,7 +81,7 @@ public final class SF2LibAU: AUAudioUnit {
 extension SF2LibAU {
 
   func createLoadSysExec(path: String, preset: Int) -> Data {
-    return engine.createLoadSysExec(std.string(path), preset)
+    return engine.createLoadSysEx(std.string(path), preset)
   }
 
   func createUseIndex(index: Int) -> Data {
@@ -109,6 +109,9 @@ extension SF2LibAU {
   var oneVoicePerKeyModeEnabled: Bool { return engine.oneVoicePerKeyModeEnabled(); }
   var retriggerModeEnabled: Bool { return engine.retriggerModeEnabled(); }
   var portamentoModeEnabled: Bool { return engine.portamentoModeEnabled() }
+}
+
+extension SF2LibAU {
 
   private func createBus(name: String, format: AVAudioFormat) throws -> AUAudioUnitBus {
     do {
