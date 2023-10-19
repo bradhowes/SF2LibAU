@@ -80,7 +80,7 @@ public final class SF2LibAU: AUAudioUnit {
 
 extension SF2LibAU {
 
-  func createLoadSysExec(path: String, preset: Int) -> Data {
+  func createLoadSysEx(path: String, preset: Int) -> Data {
     return engine.createLoadSysEx(std.string(path), preset)
   }
 
