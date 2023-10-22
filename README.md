@@ -1,6 +1,6 @@
 # SF2LibAU - AUv3 MIDI instrument with sound font (SF2) rendering [BETA]
 
-The code defines an AUAudioUnit MIDI component in Swifth that uses the
+The code defines an AUAudioUnit MIDI component in Swift that uses the
 [SF2Lib](https://github.com/bradhowes/SF2Lib) engine for rendering audio samples.
 
 Currently, the AUv3 component:
