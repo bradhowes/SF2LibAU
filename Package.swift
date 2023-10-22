@@ -10,14 +10,13 @@ let package = Package(
   dependencies: [
     .package(url: "https://github.com/bradhowes/SF2Lib", branch: "main"),
     //.package(path: "../SF2Lib"),
-    .package(url: "https://github.com/bradhowes/AUv3Support", branch: "main")
   ],
   targets: [
     .target(name: "SF2LibAU", 
             dependencies: [.product(name: "SF2Lib", package: "SF2Lib")],
             swiftSettings: [.interoperabilityMode(.Cxx)]),
     .testTarget(name: "SF2LibAUTests",
-                dependencies: ["SF2LibAU", .product(name: "AUv3-Support", package: "AUv3Support")],
+                dependencies: ["SF2LibAU"],
                 resources: [.process("Resources")],
                 swiftSettings: [.interoperabilityMode(.Cxx)])
   ],

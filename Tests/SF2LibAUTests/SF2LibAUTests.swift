@@ -1,6 +1,6 @@
 import AVFAudio
 import XCTest
-import AUv3Support
+// import AUv3Support
 @testable import SF2LibAU
 
 final class SF2LibAUTests: XCTestCase {
@@ -284,5 +284,27 @@ extension SF2LibAUTests: AVAudioPlayerDelegate {
     settings["AVLinearPCMIsNonInterleaved"] = 0
     let file = try AVAudioFile(forWriting: path, settings: settings, commonFormat: .pcmFormatFloat32, interleaved: false)
     return file
+  }
+}
+
+extension FourCharCode: ExpressibleByStringLiteral {
+
+  public init(stringLiteral value: StringLiteralType) {
+    var code: FourCharCode = 0
+    // Value has to consist of 4 printable ASCII characters, e.g. '420v'.
+    // Note: This implementation does not enforce printable range (32-126)
+    if value.count == 4 && value.utf8.count == 4 {
+      for byte in value.utf8 {
+        code = code << 8 + FourCharCode(byte)
+      }
+    }
+    else {
+      code = 0x3F3F3F3F // = '????'
+    }
+    self = code
+  }
+
+  public init(_ value: String) {
+    self = FourCharCode(stringLiteral: value)
   }
 }
