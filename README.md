@@ -37,7 +37,8 @@ messages affect the pitch of the note being played, and MIDI controllers 64 (sus
 
 ## AUParameterTree
 
-The AUParameterTree for the SF2 engine contains entries for all of the implemented generators.
+The AUParameterTree for the SF2 engine contains entries for all of the implemented generators. See the SF spec for 
+descriptions of these generators and their valid value ranges.
 
 Address | Name |
 ---: | --- |
