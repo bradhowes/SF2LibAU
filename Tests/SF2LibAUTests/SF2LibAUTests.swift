@@ -167,7 +167,7 @@ extension SF2LibAUTests: AVAudioPlayerDelegate {
     print(paths)
     try au.allocateRenderResources()
     let path = paths[index].standardizedFileURL.absoluteString
-    let cmd = au.createLoadSysExec(path: path, preset: preset)
+    let cmd = au.createLoadFileUseIndex(path: path, preset: preset)
     XCTAssertTrue(sendMIDI(cmd: cmd))
     XCTAssertEqual(0, doRender(for: 512, recordToBuffer: false))
   }
