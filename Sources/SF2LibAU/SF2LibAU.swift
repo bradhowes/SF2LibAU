@@ -81,11 +81,11 @@ public final class SF2LibAU: AUAudioUnit {
 extension SF2LibAU {
 
   func sendLoadFileUsePreset(path: String, preset: Int) -> Bool {
-    sendMIDI(bytes: Array(SF2Engine.createLoadFileUsePreset(std.string(path), preset)))
+    sendMIDI(bytes: Array(createLoadFileUsePreset(path: path, preset: preset)))
   }
 
   func sendUsePreset(preset: Int) -> Bool {
-    sendMIDI(bytes: Array(SF2Engine.createUsePreset(preset)))
+    sendMIDI(bytes: createUsePreset(preset: preset))
   }
 
   func sendReset() -> Bool {
@@ -97,7 +97,7 @@ extension SF2LibAU {
   }
 
   func sendChannelMessage(message: UInt8, value: UInt8 = 0) -> Bool {
-    sendMIDI(bytes: Array(SF2Engine.createChannelMessage(message, value)))
+    sendMIDI(bytes: createChannelMessage(message: message, value: value))
   }
 
   func sendAllNotesOff() -> Bool {
@@ -120,8 +120,8 @@ extension SF2LibAU {
     return Array(SF2Engine.createLoadFileUsePreset(std.string(path), preset))
   }
 
-  func createUsePreset(index: Int) -> Array<UInt8> {
-    return Array(SF2Engine.createUsePreset(index))
+  func createUsePreset(preset: Int) -> Array<UInt8> {
+    return Array(SF2Engine.createUsePreset(preset))
   }
 
   func createResetCommand() -> Array<UInt8> {

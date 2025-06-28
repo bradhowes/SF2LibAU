@@ -84,9 +84,9 @@ final class SF2LibAUTests: XCTestCase {
       XCTAssertEqual("Piano 1", presetName1)
       for (bank, program, expectedName) in [(0, 123, "Bird"), (8, 28, "Funk Gt."), (128, 25, "TR-808")] {
         XCTAssertTrue(au.sendUseBankProgram(bank: UInt16(bank), program: UInt8(program)))
-        XCTAssertTrue(sendNoteOn(note: 0x40))
-        XCTAssertTrue(sendNoteOn(note: 0x44))
-        XCTAssertTrue(sendNoteOn(note: 0x47))
+        XCTAssertTrue(au.sendNoteOn(note: 0x40))
+        XCTAssertTrue(au.sendNoteOn(note: 0x44))
+        XCTAssertTrue(au.sendNoteOn(note: 0x47))
         XCTAssertEqual(0, doRender(fraction: 0.3))
         let presetName = au.activePresetName
         XCTAssertEqual(expectedName, presetName)
@@ -100,9 +100,9 @@ final class SF2LibAUTests: XCTestCase {
       XCTAssertEqual("Piano 1", presetName1)
       for (preset, expectedName) in [(0, "Piano 1"), (128, "SynthBass101"), (180, "Church Org.2")] {
         XCTAssertTrue(au.sendUsePreset(preset: preset))
-        XCTAssertTrue(sendNoteOn(note: 0x40))
-        XCTAssertTrue(sendNoteOn(note: 0x44))
-        XCTAssertTrue(sendNoteOn(note: 0x47))
+        XCTAssertTrue(au.sendNoteOn(note: 0x40))
+        XCTAssertTrue(au.sendNoteOn(note: 0x44))
+        XCTAssertTrue(au.sendNoteOn(note: 0x47))
         XCTAssertEqual(0, doRender(fraction: 0.3))
         let presetName = au.activePresetName
         XCTAssertEqual(expectedName, presetName)
@@ -112,20 +112,34 @@ final class SF2LibAUTests: XCTestCase {
 
   func testCanPlayNote() throws {
     try prepareToRender(index: 1, preset: 0, recording: true) {
-      XCTAssertTrue(sendNoteOn(note: 0x40))
-      XCTAssertTrue(sendNoteOn(note: 0x44))
-      XCTAssertTrue(sendNoteOn(note: 0x47))
+      XCTAssertTrue(au.sendNoteOn(note: 0x40))
+      XCTAssertTrue(au.sendNoteOn(note: 0x44))
+      XCTAssertTrue(au.sendNoteOn(note: 0x47))
       XCTAssertEqual(0, doRender(fraction: 0.5))
       XCTAssertEqual(6, au.activeVoiceCount)
       XCTAssertEqual(0, doRender())
     }
   }
 
+  func testCanSendNoteOff() throws {
+    try prepareToRender(index: 1, preset: 0, recording: true) {
+      XCTAssertTrue(au.sendNoteOn(note: 0x40))
+      XCTAssertTrue(au.sendNoteOn(note: 0x44))
+      XCTAssertTrue(au.sendNoteOn(note: 0x47))
+      XCTAssertEqual(0, doRender(fraction: 0.5))
+      XCTAssertTrue(au.sendNoteOff(note: 0x40))
+      XCTAssertTrue(au.sendNoteOff(note: 0x44))
+      XCTAssertTrue(au.sendNoteOff(note: 0x47))
+      XCTAssertEqual(0, doRender())
+      XCTAssertEqual(6, au.activeVoiceCount)
+    }
+  }
+
   func testAllSoundOff() throws {
     try prepareToRender(index: 1, preset: 0, recording: true) {
-      XCTAssertTrue(sendNoteOn(note: 0x40))
-      XCTAssertTrue(sendNoteOn(note: 0x44))
-      XCTAssertTrue(sendNoteOn(note: 0x47))
+      XCTAssertTrue(au.sendNoteOn(note: 0x40))
+      XCTAssertTrue(au.sendNoteOn(note: 0x44))
+      XCTAssertTrue(au.sendNoteOn(note: 0x47))
       XCTAssertEqual(0, doRender(fraction: 0.25))
       XCTAssertEqual(6, au.activeVoiceCount)
       XCTAssertTrue(au.sendAllSoundOff())
@@ -137,9 +151,9 @@ final class SF2LibAUTests: XCTestCase {
 
   func testAllNotesOff() throws {
     try prepareToRender(index: 0, preset: 5, recording: true) {
-      XCTAssertTrue(sendNoteOn(note: 0x40))
-      XCTAssertTrue(sendNoteOn(note: 0x44))
-      XCTAssertTrue(sendNoteOn(note: 0x47))
+      XCTAssertTrue(au.sendNoteOn(note: 0x40))
+      XCTAssertTrue(au.sendNoteOn(note: 0x44))
+      XCTAssertTrue(au.sendNoteOn(note: 0x47))
       XCTAssertEqual(0, doRender(fraction: 0.1))
       XCTAssertEqual(3, au.activeVoiceCount)
       XCTAssertTrue(au.sendAllNotesOff())
@@ -152,7 +166,7 @@ final class SF2LibAUTests: XCTestCase {
 
   func testCanSendResetCmdToCancelNotes() throws {
     try prepareToRender(index: 1, preset: 0) {
-      XCTAssertTrue(sendNoteOn(note: 0x60))
+      XCTAssertTrue(au.sendNoteOn(note: 0x60))
       XCTAssertEqual(0, doRender(fraction: 0.5))
       XCTAssertEqual(2, au.activeVoiceCount)
       XCTAssertTrue(au.sendReset())
@@ -165,11 +179,11 @@ final class SF2LibAUTests: XCTestCase {
     try prepareToRender(index: 0, preset: 0) {
       XCTAssertFalse(au.monophonicModeEnabled)
       XCTAssertTrue(au.polyphonicModeEnabled)
-      XCTAssertTrue(sendMIDI(bytes: au.createChannelMessage(message: 0x7E, value: 1)))
+      XCTAssertTrue(au.sendChannelMessage(message: 0x7E, value: 1))
       XCTAssertEqual(0, doRender(fraction: 0.5))
       XCTAssertTrue(au.monophonicModeEnabled)
       XCTAssertFalse(au.polyphonicModeEnabled)
-      XCTAssertTrue(sendMIDI(bytes: au.createChannelMessage(message: 0x7F, value: 1)))
+      XCTAssertTrue(au.sendChannelMessage(message: 0x7F, value: 1))
       XCTAssertEqual(0, doRender())
       XCTAssertFalse(au.monophonicModeEnabled)
       XCTAssertTrue(au.polyphonicModeEnabled)
@@ -178,10 +192,10 @@ final class SF2LibAUTests: XCTestCase {
 
   func testCanChangePanning() throws {
     try prepareToRender(index: 0, preset: 0) {
-      XCTAssertTrue(sendMIDI(bytes: au.createChannelMessage(message: 0x0A, value: 0)))
-      XCTAssertTrue(sendNoteOn(note: 0x40))
+      XCTAssertTrue(au.sendChannelMessage(message: 0x0A, value: 0))
+      XCTAssertTrue(au.sendNoteOn(note: 0x40))
       XCTAssertEqual(0, doRender(fraction: 0.5))
-      XCTAssertTrue(sendMIDI(bytes: au.createChannelMessage(message: 0x0A, value: 0x7F)))
+      XCTAssertTrue(au.sendChannelMessage(message: 0x0A, value: 0x7F))
       XCTAssertEqual(0, doRender())
     }
   }
@@ -194,8 +208,7 @@ extension SF2LibAUTests: @preconcurrency AVAudioPlayerDelegate {
     print(paths)
     try au.allocateRenderResources()
     let path = paths[index].standardizedFileURL.absoluteString
-    let bytes = au.createLoadFileUsePreset(path: path, preset: preset)
-    XCTAssertTrue(sendMIDI(bytes: bytes))
+    XCTAssertTrue(au.sendLoadFileUsePreset(path: path, preset: preset))
     XCTAssertEqual(0, doRender(for: 1))
   }
 
@@ -213,16 +226,6 @@ extension SF2LibAUTests: @preconcurrency AVAudioPlayerDelegate {
       }
     }
     return false
-  }
-
-  func sendNoteOn(note: UInt8, velocity: UInt8 = 0x64) -> Bool {
-    let bytes: [UInt8] = [0x90, note, velocity];
-    return sendMIDI(bytes: bytes)
-  }
-
-  func sendNoteOff(note: UInt8) -> Bool {
-    let bytes: [UInt8] = [0x80, note, 0x00];
-    return sendMIDI(bytes: bytes)
   }
 
   func sendMIDI(bytes: [UInt8]) -> Bool {
