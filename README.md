@@ -1,7 +1,7 @@
 # SF2LibAU - AUv3 MIDI instrument with sound font (SF2) rendering [BETA]
 
-The code defines an AUAudioUnit MIDI component in Swift that uses the
-[SF2Lib](https://github.com/bradhowes/SF2Lib) engine for rendering audio samples.
+The code defines an AUAudioUnit MIDI component in Swift that uses the 
+[SF2Lib][sf2lib] engine for rendering audio samples.
 
 Currently, the AUv3 component:
 
@@ -20,16 +20,14 @@ synthesizer parameters (generators) and modulator mappings; those for instrument
 preset values are always relative, adding to an instrument's value. Many of these parameters can be modified in
 real-time by two means:
 
-* AUv3 parameter changes communicated via the 
-  [AUParameterTree](https://developer.apple.com/documentation/audiotoolbox/auparametertree) instance provided by
-  the AUv3 instrument.
+* AUv3 parameter changes communicated via the [AUParameterTree][tree] instance provided by the AUv3 instrument.
+* MIDI control messages using **NRPN** MIDI control. From the SF2 spec:
 
-* MIDI control messages using "NRPN" MIDI control. From the SF2 spec:
-
-> NRPN stands for Non Registered Parameter Number. The MIDI specification has defined this series of continuous 
+> *NRPN* stands for *Non-Registered Parameter Number*. The MIDI specification has defined this series of continuous 
 > controllers to permit General MIDI compatible synthesizers to take advantage of their proprietary hardware by using 
-> these messages to control the non-General MIDI compatible aspects of their hardware. The SoundFont 2.01 specification 
-> uses these messages to allow arbitrary real-time control over all SoundFont synthesis parameters.
+> these messages to control the non-General MIDI compatible aspects of their hardware.
+> The [SoundFont 2.01 specification][spec] uses these messages to allow arbitrary real-time control over all 
+> SoundFont synthesis parameters.
 
 Note that some MIDI control messages will by default also effect a parameter change. For instance, MIDI pitch bend
 messages affect the pitch of the note being played, and MIDI controllers 64 (sustain pedal), 66 (soft pedal), and 67
@@ -37,8 +35,8 @@ messages affect the pitch of the note being played, and MIDI controllers 64 (sus
 
 ## AUParameterTree
 
-The AUParameterTree for the SF2 engine contains entries for all of the implemented generators. See the SF spec for 
-descriptions of these generators and their valid value ranges.
+The [AUParameterTree][tree] for the SF2 engine contains entries for all of the implemented generators. 
+See the [SF spec][spec] for descriptions of these generators and their valid value ranges.
 
 Address | Name |
 ---: | --- |
@@ -93,11 +91,11 @@ Address | Name |
 57 | exclusiveClass
 58 | overridingRootKey
 
-> NOTE: any address not listed above will not be found in the AUParameterTree due to gaps in the SF spec.
+> NOTE: any address not listed above will not be found in the AUParameterTree due to gaps in the [SF spec][spec].
 
 All values for the elements in the AUParameterTree are floating-point values which will be converted into integer values
-that conform to the spec. For boolean (true/false )settings, values < 0.5 will be treated as `false` and values >= 0.5 
-will be `true`.
+that conform to the spec. For boolean (true/false) settings, values < 0.5 are treated as `false` and values >= 0.5 
+`true`.
 
 There are additional parameters definitions for MIDI control state:
 
@@ -109,3 +107,15 @@ Address | Name | Description
 1003 | polyphonicModeEnabled     | When enabled, supports playing multiple notes at same time
 1004 | activeVoiceCount          | Reports the number of active voices (read-only)
 1005 | retriggerModeEnabled      | When enabled, playing same voice restarts the envelope of the voice
+
+# Loading File
+
+There are some custom SysEx messages that one can use to load an SF2 file and a preset in the file in one shot:
+
+```swift
+func createLoadFileUsePreset(path: String, preset: Int) -> Data
+```
+
+[sf2lib]: https://github.com/bradhowes/SF2Lib
+[tree]: https://developer.apple.com/documentation/audiotoolbox/auparametertree
+[spec]: https://github.com/bradhowes/SF2Lib/blob/main/SoundFont%20Spec%202.01.pdf

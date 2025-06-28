@@ -9,7 +9,7 @@ final class SF2LibAUTests: XCTestCase {
                                                 interleaved: false)!
 
   // Make the number of frames to render the same as the sample rate to render 1 second of audio samples
-  let frameCount: AVAudioFrameCount = .init(sampleRate)
+  let frameCount: AVAudioFrameCount = .init(sampleRate) * 2
 
   let audioComponentDescription: AudioComponentDescription = .init(componentType: FourCharCode("aumu"),
                                                                    componentSubType: FourCharCode("sf2L"),
@@ -84,13 +84,15 @@ final class SF2LibAUTests: XCTestCase {
   }
 
   func testCanSetBankProgram() throws {
-    try prepareToRender(index: 0, preset: 0) {
+    try prepareToRender(index: 0, preset: 0, recording: true) {
       let presetName1 = au.activePresetName
       XCTAssertEqual("Piano 1", presetName1)
       for (bank, program, expectedName) in [(0, 123, "Bird"), (8, 28, "Funk Gt."), (128, 25, "TR-808")] {
-        let cmds = au.createUseBankProgram(bank: UInt16(bank), program: UInt8(program))
-        XCTAssertTrue(sendMIDI(cmds: cmds))
-        XCTAssertEqual(0, doRender(for: 1024, recordToBuffer: false))
+        XCTAssertTrue(au.sendUseBankProgram(bank: UInt16(bank), program: UInt8(program)))
+        XCTAssertTrue(sendNoteOn(note: 0x40))
+        XCTAssertTrue(sendNoteOn(note: 0x44))
+        XCTAssertTrue(sendNoteOn(note: 0x47))
+        XCTAssertEqual(0, doRender(fraction: 0.3))
         let presetName = au.activePresetName
         XCTAssertEqual(expectedName, presetName)
       }
@@ -98,12 +100,14 @@ final class SF2LibAUTests: XCTestCase {
   }
 
   func testCanUseIndex() throws {
-    try prepareToRender(index: 0, preset: 0) {
+    try prepareToRender(index: 0, preset: 0, recording: true) {
       let presetName1 = au.activePresetName
       XCTAssertEqual("Piano 1", presetName1)
       for (preset, expectedName) in [(0, "Piano 1"), (128, "SynthBass101"), (180, "Church Org.2")] {
-        let cmd = au.createUseIndex(index: preset)
-        XCTAssertTrue(sendMIDI(cmd: cmd))
+        XCTAssertTrue(au.sendUsePreset(preset: preset))
+        XCTAssertTrue(sendNoteOn(note: 0x40))
+        XCTAssertTrue(sendNoteOn(note: 0x44))
+        XCTAssertTrue(sendNoteOn(note: 0x47))
         XCTAssertEqual(0, doRender(fraction: 0.3))
         let presetName = au.activePresetName
         XCTAssertEqual(expectedName, presetName)
@@ -112,7 +116,7 @@ final class SF2LibAUTests: XCTestCase {
   }
 
   func testCanPlayNote() throws {
-    try prepareToRender(index: 1, preset: 0) {
+    try prepareToRender(index: 1, preset: 0, recording: true) {
       XCTAssertTrue(sendNoteOn(note: 0x40))
       XCTAssertTrue(sendNoteOn(note: 0x44))
       XCTAssertTrue(sendNoteOn(note: 0x47))
@@ -122,13 +126,41 @@ final class SF2LibAUTests: XCTestCase {
     }
   }
 
+  func testAllSoundOff() throws {
+    try prepareToRender(index: 1, preset: 0, recording: true) {
+      XCTAssertTrue(sendNoteOn(note: 0x40))
+      XCTAssertTrue(sendNoteOn(note: 0x44))
+      XCTAssertTrue(sendNoteOn(note: 0x47))
+      XCTAssertEqual(0, doRender(fraction: 0.25))
+      XCTAssertEqual(6, au.activeVoiceCount)
+      XCTAssertTrue(au.sendAllSoundOff())
+      XCTAssertEqual(0, doRender(for: 10))
+      XCTAssertEqual(0, au.activeVoiceCount)
+      XCTAssertEqual(0, doRender())
+    }
+  }
+
+  func testAllNotesOff() throws {
+    try prepareToRender(index: 0, preset: 5, recording: true) {
+      XCTAssertTrue(sendNoteOn(note: 0x40))
+      XCTAssertTrue(sendNoteOn(note: 0x44))
+      XCTAssertTrue(sendNoteOn(note: 0x47))
+      XCTAssertEqual(0, doRender(fraction: 0.1))
+      XCTAssertEqual(3, au.activeVoiceCount)
+      XCTAssertTrue(au.sendAllNotesOff())
+      XCTAssertEqual(0, doRender(for: 1))
+      XCTAssertEqual(3, au.activeVoiceCount)
+      XCTAssertEqual(0, doRender())
+      XCTAssertEqual(0, au.activeVoiceCount)
+    }
+  }
+
   func testCanSendResetCmdToCancelNotes() throws {
     try prepareToRender(index: 1, preset: 0) {
       XCTAssertTrue(sendNoteOn(note: 0x60))
       XCTAssertEqual(0, doRender(fraction: 0.5))
       XCTAssertEqual(2, au.activeVoiceCount)
-      let cmd = au.createResetCommand()
-      XCTAssertTrue(sendMIDI(cmd: cmd))
+      XCTAssertTrue(au.sendReset())
       XCTAssertEqual(0, doRender(fraction: 0.5))
       XCTAssertEqual(0, au.activeVoiceCount)
     }
@@ -138,11 +170,11 @@ final class SF2LibAUTests: XCTestCase {
     try prepareToRender(index: 0, preset: 0) {
       XCTAssertFalse(au.monophonicModeEnabled)
       XCTAssertTrue(au.polyphonicModeEnabled)
-      XCTAssertTrue(sendMIDI(cmd: au.createChannelMessage(message: 0x7E, value: 1)))
+      XCTAssertTrue(sendMIDI(bytes: au.createChannelMessage(message: 0x7E, value: 1)))
       XCTAssertEqual(0, doRender(fraction: 0.5))
       XCTAssertTrue(au.monophonicModeEnabled)
       XCTAssertFalse(au.polyphonicModeEnabled)
-      XCTAssertTrue(sendMIDI(cmd: au.createChannelMessage(message: 0x7F, value: 1)))
+      XCTAssertTrue(sendMIDI(bytes: au.createChannelMessage(message: 0x7F, value: 1)))
       XCTAssertEqual(0, doRender())
       XCTAssertFalse(au.monophonicModeEnabled)
       XCTAssertTrue(au.polyphonicModeEnabled)
@@ -151,10 +183,10 @@ final class SF2LibAUTests: XCTestCase {
 
   func testCanChangePanning() throws {
     try prepareToRender(index: 0, preset: 0) {
-      XCTAssertTrue(sendMIDI(cmd: au.createChannelMessage(message: 0x0A, value: 0)))
+      XCTAssertTrue(sendMIDI(bytes: au.createChannelMessage(message: 0x0A, value: 0)))
       XCTAssertTrue(sendNoteOn(note: 0x40))
       XCTAssertEqual(0, doRender(fraction: 0.5))
-      XCTAssertTrue(sendMIDI(cmd: au.createChannelMessage(message: 0x0A, value: 0x7F)))
+      XCTAssertTrue(sendMIDI(bytes: au.createChannelMessage(message: 0x0A, value: 0x7F)))
       XCTAssertEqual(0, doRender())
     }
   }
@@ -167,9 +199,9 @@ extension SF2LibAUTests: AVAudioPlayerDelegate {
     print(paths)
     try au.allocateRenderResources()
     let path = paths[index].standardizedFileURL.absoluteString
-    let cmd = au.createLoadFileUseIndex(path: path, preset: preset)
-    XCTAssertTrue(sendMIDI(cmd: cmd))
-    XCTAssertEqual(0, doRender(for: 512, recordToBuffer: false))
+    let bytes = au.createLoadFileUsePreset(path: path, preset: preset)
+    XCTAssertTrue(sendMIDI(bytes: bytes))
+    XCTAssertEqual(0, doRender(for: 1))
   }
 
   func sendMIDI(cmd: Data) -> Bool {
@@ -227,13 +259,13 @@ extension SF2LibAUTests: AVAudioPlayerDelegate {
     }
   }
 
-  func doRender(for frameCount: AVAudioFrameCount, recordToBuffer: Bool) -> AUAudioUnitStatus {
+  func doRender(for frameCount: AVAudioFrameCount) -> AUAudioUnitStatus {
     precondition(frameCount <= framesRemaining)
     let renderBlock = au.renderBlock
     var flags: UInt32 = 0
     var when: AudioTimeStamp = .init()
     let status = renderBlock(&flags, &when, frameCount, 0, stereoBuffer.mutableAudioBufferList, nil)
-    if status == noErr && recordToBuffer {
+    if status == noErr {
       stereoBuffer.frameLength = frameCount
       if let audioFile = self.audioFile {
         try? audioFile.write(from: stereoBuffer)
@@ -245,10 +277,10 @@ extension SF2LibAUTests: AVAudioPlayerDelegate {
 
   func doRender(fraction: Float) -> AUAudioUnitStatus {
     let frameCount: AVAudioFrameCount = .init(Float(framesRemaining) * fraction)
-    return doRender(for: frameCount, recordToBuffer: true)
+    return doRender(for: frameCount)
   }
 
-  func doRender() -> AUAudioUnitStatus { doRender(for: self.framesRemaining, recordToBuffer: true) }
+  func doRender() -> AUAudioUnitStatus { doRender(for: self.framesRemaining) }
 
   func playSamples() throws {
     guard let audioFile = self.audioFile else {
@@ -282,12 +314,17 @@ extension SF2LibAUTests: AVAudioPlayerDelegate {
     let path = URL(fileURLWithPath: pathForTemporaryFile)
     var settings = stereoBuffer.format.settings
     settings["AVLinearPCMIsNonInterleaved"] = 0
-    let file = try AVAudioFile(forWriting: path, settings: settings, commonFormat: .pcmFormatFloat32, interleaved: false)
+    let file = try AVAudioFile(
+      forWriting: path,
+      settings: settings,
+      commonFormat: .pcmFormatFloat32,
+      interleaved: false
+    )
     return file
   }
 }
 
-extension FourCharCode: ExpressibleByStringLiteral {
+extension FourCharCode: @retroactive ExpressibleByStringLiteral {
 
   public init(stringLiteral value: StringLiteralType) {
     var code: FourCharCode = 0

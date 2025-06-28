@@ -3,7 +3,7 @@
 import AudioToolbox
 import CoreAudioKit
 import os
-import SF2Lib
+import Engine
 
 /**
  AUv3 component for SF2Lib engine.
@@ -13,7 +13,7 @@ public final class SF2LibAU: AUAudioUnit {
   private var _audioUnitName: String?
   private var _audioUnitShortName: String?
   private var _currentPreset: AUAudioUnitPreset?
-  private var engine: SF2Lib.SF2.Engine
+  private var engine: SF2Engine
 
   private var dryBus: AUAudioUnitBus!
   private var reverbSendBus: AUAudioUnitBus!
@@ -60,7 +60,7 @@ public final class SF2LibAU: AUAudioUnit {
       throw Failure.invalidFormat
     }
 
-    self.engine = SF2Lib.SF2.Engine(format.sampleRate, getVoiceCount())
+    self.engine = SF2Engine(format.sampleRate, getVoiceCount())
 
     os_log(.debug, log: log, "super.init")
     do {
@@ -80,28 +80,63 @@ public final class SF2LibAU: AUAudioUnit {
 
 extension SF2LibAU {
 
-  func createLoadFileUseIndex(path: String, preset: Int) -> Data {
-    return engine.createLoadFileUseIndex(std.string(path), preset)
+  func sendLoadFileUsePreset(path: String, preset: Int) -> Bool {
+    sendMIDI(bytes: Array(SF2Engine.createLoadFileUsePreset(std.string(path), preset)))
   }
 
-  func createUseIndex(index: Int) -> Data {
-    return engine.createUseIndex(index)
+  func sendUsePreset(preset: Int) -> Bool {
+    sendMIDI(bytes: Array(SF2Engine.createUsePreset(preset)))
   }
 
-  func createResetCommand() -> Data {
-    return engine.createResetCommand()
+  func sendReset() -> Bool {
+    sendMIDI(bytes: Array(createResetCommand()))
   }
 
-  func createUseBankProgram(bank: UInt16, program: UInt8) -> [Data] {
-    return engine.createUseBankProgram(bank, program)
+  func sendUseBankProgram(bank: UInt16, program: UInt8) -> Bool {
+    sendMIDI(bytes: Array(createUseBankProgram(bank: bank, program: program)))
   }
 
-  func createChannelMessage(message: UInt8, value: UInt8) -> Data {
-    return engine.createChannelMessage(message, value)
+  func sendChannelMessage(message: UInt8, value: UInt8 = 0) -> Bool {
+    sendMIDI(bytes: Array(SF2Engine.createChannelMessage(message, value)))
+  }
+
+  func sendAllNotesOff() -> Bool {
+    sendMIDI(bytes: Array(SF2Engine.createAllNotesOff()))
+  }
+
+  func sendAllSoundOff() -> Bool {
+    sendMIDI(bytes: Array(SF2Engine.createAllSoundOff()))
+  }
+
+  func sendNoteOn(note: UInt8, velocity: UInt8 = 0x64) -> Bool {
+    sendMIDI(bytes: [0x90, note, velocity])
+  }
+
+  func sendNoteOff(note: UInt8) -> Bool {
+    sendMIDI(bytes: [0x80, note, 0x00])
+  }
+
+  func createLoadFileUsePreset(path: String, preset: Int) -> Array<UInt8> {
+    return Array(SF2Engine.createLoadFileUsePreset(std.string(path), preset))
+  }
+
+  func createUsePreset(index: Int) -> Array<UInt8> {
+    return Array(SF2Engine.createUsePreset(index))
+  }
+
+  func createResetCommand() -> Array<UInt8> {
+    return Array(SF2Engine.createResetCommand())
+  }
+
+  func createUseBankProgram(bank: UInt16, program: UInt8) -> Array<UInt8> {
+    return Array(SF2Engine.createUseBankProgram(bank, program))
+  }
+
+  func createChannelMessage(message: UInt8, value: UInt8) -> Array<UInt8> {
+    return Array(SF2Engine.createChannelMessage(message, value))
   }
 
   var activePresetName: String { String(engine.activePresetName()).trimmingCharacters(in: .whitespaces) }
-
   var activeVoiceCount: Int { return engine.activeVoiceCount() }
 
   var monophonicModeEnabled: Bool { return engine.monophonicModeEnabled(); }
@@ -109,6 +144,14 @@ extension SF2LibAU {
   var oneVoicePerKeyModeEnabled: Bool { return engine.oneVoicePerKeyModeEnabled(); }
   var retriggerModeEnabled: Bool { return engine.retriggerModeEnabled(); }
   var portamentoModeEnabled: Bool { return engine.portamentoModeEnabled() }
+
+  func sendMIDI(bytes: Array<UInt8>) -> Bool {
+    guard let block = scheduleMIDIEventBlock else { return false }
+    let now: AUEventSampleTime = .min
+    let cable: UInt8 = 0
+    block(now, cable, bytes.count, bytes)
+    return true
+  }
 }
 
 extension SF2LibAU {
