@@ -8,8 +8,8 @@ let package = Package(
   platforms: [.iOS(.v13), .macOS(.v10_15), .tvOS(.v12)],
   products: [.library(name: "SF2LibAU", targets: ["SF2LibAU"])],
   dependencies: [
-    // .package(url: "https://github.com/bradhowes/SF2Lib", from: "5.0.0"),
-    .package(path: "../SF2Lib"),
+    .package(url: "https://github.com/bradhowes/SF2Lib", from: "6.5.0"),
+    // .package(path: "../SF2Lib"),
   ],
   targets: [
     .target(name: "SF2LibAU", 
