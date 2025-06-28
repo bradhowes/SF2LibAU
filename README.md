@@ -1,3 +1,9 @@
+[![CI](https://github.com/bradhowes/SF2LibAU/workflows/CI/badge.svg)](https://github.com/bradhowes/SF2LibAU/actions/workflows/CI.yml)
+[![COV](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/bradhowes/6ccc9330abf22f3cc7414190170dca82/raw/SF2Lib-coverage.json)](https://github.com/bradhowes/SF2LibAU/blob/main/.github/workflows/CI.yml)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fbradhowes%2FSF2LibAU%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/bradhowes/SF2LibAU)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fbradhowes%2FSF2LibAU%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/bradhowes/SF2LibAU)
+[![License: MIT](https://img.shields.io/badge/License-MIT-A31F34.svg)](https://opensource.org/licenses/MIT)
+
 # SF2LibAU - AUv3 MIDI instrument with sound font (SF2) rendering [BETA]
 
 The code defines an AUAudioUnit MIDI component in Swift that uses the 

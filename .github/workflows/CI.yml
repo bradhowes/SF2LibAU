@@ -21,7 +21,7 @@ jobs:
       uses: schneegans/dynamic-badges-action@v1.1.0
       with:
         auth: ${{ secrets.GIST_UPDATE }}
-        gistID: dbe62f18182c82eb36dc1030819bc54bccc
+        gistID: 6ccc9330abf22f3cc7414190170dca82
         filename: SF2LibAU-coverage.json
         label: Coverage
         message: ${{ env.PERCENTAGE }}
