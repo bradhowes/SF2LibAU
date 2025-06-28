@@ -102,7 +102,7 @@ There are additional parameters definitions for MIDI control state:
 Address | Name | Description
 ---: | ------------------------- | --------------------------------------------------------------------
 1000 | portamentoModeEnabled     | Portamento mode (aka glide)
-1001 | portamentoRate            | How must time to transition for each step
+1001 | portamentoRate            | How long it takes to transition for each step
 1002 | oneVoicePerKeyModeEnabled | When enabled, playing same key will cancel previous voice
 1003 | polyphonicModeEnabled     | When enabled, supports playing multiple notes at same time
 1004 | activeVoiceCount          | Reports the number of active voices (read-only)
@@ -159,10 +159,10 @@ Since there is no file name, the size of this message is always 6 bytes.
 
 # Selecting Bank/Program
 
-The above command SysEx command is useful when selecting an preset from within the SF2 file, but presets are also 
+The above SysEx command is useful when selecting a preset from within the SF2 file, but presets are also 
 addressed by a _bank_ and a _program_ value, where a bank contains a collection of programs, and only one bank is
 active at a time. To change the program in the current bank, there is the MIDI 1.0 programChange command (0xC0) that
-takes one byte (0-127) that is the value of the program to use.
+takes one byte (0-127) that is the value of the program to use in the current bank.
 
 To switch banks, one can do so by setting two dedicated continuous-controller (CC) values that hold the MSB (0x00) and 
 LSB (0x20) of the bank. Both take one byte of value (0-127), so the maximum bank is 128 x 127 + 127 = 16383. To change
