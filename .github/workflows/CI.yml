@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: make
+    - : Get Test Coverage
+      run: |
+        set -- $(< percentage.txt)
+        echo "PERCENTAGE=${1}" >> $GITHUB_ENV
+    - name: Create Coverage Badge
+      uses: schneegans/dynamic-badges-action@v1.1.0
+      with:
+        auth: ${{ secrets.GIST_UPDATE }}
+        gistID: dbe62f18182c82eb36dc1030819bc54bccc
+        filename: SF2LibAU-coverage.json
+        label: Coverage
+        message: ${{ env.PERCENTAGE }}
+        color: success
