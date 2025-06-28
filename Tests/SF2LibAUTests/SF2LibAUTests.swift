@@ -229,6 +229,38 @@ final class SF2LibAUTests: XCTestCase {
       au.currentPreset = state
     }
   }
+
+  func testCanPerformInput() throws {
+    try prepareToRender(index: 0, preset: 0) {
+      XCTAssertFalse(au.canPerformInput)
+    }
+  }
+
+  func testCanPerformOutput() throws {
+    try prepareToRender(index: 0, preset: 0) {
+      XCTAssertTrue(au.canPerformOutput)
+    }
+  }
+
+  func testSupportedViewConfigurations() throws {
+    try prepareToRender(index: 0, preset: 0) {
+      XCTAssertNotNil(au.supportedViewConfigurations([]))
+    }
+  }
+
+  func testAudioUnitShortName() throws {
+    try prepareToRender(index: 0, preset: 0) {
+      au.audioUnitShortName = "blah"
+      XCTAssertEqual("blah", au.audioUnitShortName)
+    }
+  }
+
+  func testAudioUnitName() throws {
+    try prepareToRender(index: 0, preset: 0) {
+      au.audioUnitName = "blah"
+      XCTAssertEqual("blah", au.audioUnitName)
+    }
+  }
 }
 
 extension SF2LibAUTests: @preconcurrency AVAudioPlayerDelegate {
