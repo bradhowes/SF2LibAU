@@ -108,14 +108,74 @@ Address | Name | Description
 1004 | activeVoiceCount          | Reports the number of active voices (read-only)
 1005 | retriggerModeEnabled      | When enabled, playing same voice restarts the envelope of the voice
 
-# Loading File
+# Loading SF2 File
 
-There are some custom SysEx messages that one can use to load an SF2 file and a preset in the file in one shot:
+There is a custom SysEx messages that one can use to load an SF2 file and a preset in the file in one shot. To make this
+easy for integration, there is a utility function that will generate the SysEx for a given file path and preset index
+value.
 
 ```swift
-func createLoadFileUsePreset(path: String, preset: Int) -> Data
+func sendLoadFileUsePreset(path: String, preset: Int) -> Bool
 ```
+
+The function creates the propery SysEx command and then provides it to the sendMIDI utility function that hands it to
+`scheduleMIDIEventBlock` method defined by the audio unit:
+
+```swift
+func sendMIDI(bytes: Array<UInt8>, when: AUEventSampleTime = .min, cable: UInt8 = 0) -> Bool {
+  guard let block = scheduleMIDIEventBlock else { return false }
+  block(when, cable, bytes.count, bytes)
+  return true
+}
+```
+
+For the curious, the actual [format of the SysEx][sysex] is the following:
+
+Byte | Field | Description
+---: | -------- | -----------
+0    | 0xF0 | Start of a MIDI 1.0 SysEx message
+1    | 0x7E | Custom SF2Lib command
+2    | 0x00 | Unused subtype (reserved)
+3    | MSB  | the MSB of the preset index to use
+4    | LSB  | the LSB of the preset index to use
+5    | P[0] | the first character of the file path (Base 64 encoded)
+N - 1 | P[N - 1] | the last character of the file path of N encoded characters
+N | 0xF7 | End of a MIDI 1.0 SysEx message
+
+The file path is Base-64 encoded since MIDI 1.0 data bytes are only 7 bits, even in a SysEx message.
+
+There is a variant of the above that has no path -- it is used to change to a new preset in the same file:
+
+Byte | Field | Description
+---: | -------- | -----------
+0    | 0xF0 | Start of a MIDI 1.0 SysEx message
+1    | 0x7E | Custom SF2Lib command
+2    | 0x00 | Unused subtype (reserved)
+3    | MSB  | the MSB of the preset index to use
+4    | LSB  | the LSB of the preset index to use
+5    | 0xF7 | End of a MIDI 1.0 SysEx message
+
+Since there is no file name, the size of this message is always 6 bytes.
+
+# Selecting Bank/Program
+
+The above command SysEx command is useful when selecting an preset from within the SF2 file, but presets are also 
+addressed by a _bank_ and a _program_ value, where a bank contains a collection of programs, and only one bank is
+active at a time. To change the program in the current bank, there is the MIDI 1.0 programChange command (0xC0) that
+takes one byte (0-127) that is the value of the program to use.
+
+To switch banks, one can do so by setting two dedicated continuous-controller (CC) values that hold the MSB (0x00) and 
+LSB (0x20) of the bank. Both take one byte of value (0-127), so the maximum bank is 128 x 127 + 127 = 16383. To change
+a bank and program at the same time, there is the utility function:
+
+```swift
+func sendUseBankProgram(bank: UInt16, program: UInt8) -> Bool
+```
+
+This function actually generates three MIDI commands: 2 to set the dedicated CC values for the bank, and 1 to set the 
+preset value.
 
 [sf2lib]: https://github.com/bradhowes/SF2Lib
 [tree]: https://developer.apple.com/documentation/audiotoolbox/auparametertree
 [spec]: https://github.com/bradhowes/SF2Lib/blob/main/SoundFont%20Spec%202.01.pdf
+[sysex]: https://github.com/bradhowes/SF2Lib/blob/4da66ba295a4881a9fb94a7443a12071f70d0172/Sources/SF2Lib/Render/Engine/Engine.mm#L391

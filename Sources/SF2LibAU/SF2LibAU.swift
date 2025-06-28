@@ -145,11 +145,9 @@ extension SF2LibAU {
   var retriggerModeEnabled: Bool { return engine.retriggerModeEnabled(); }
   var portamentoModeEnabled: Bool { return engine.portamentoModeEnabled() }
 
-  func sendMIDI(bytes: Array<UInt8>) -> Bool {
+  func sendMIDI(bytes: Array<UInt8>, when: AUEventSampleTime = .min, cable: UInt8 = 0) -> Bool {
     guard let block = scheduleMIDIEventBlock else { return false }
-    let now: AUEventSampleTime = .min
-    let cable: UInt8 = 0
-    block(now, cable, bytes.count, bytes)
+    block(when, cable, bytes.count, bytes)
     return true
   }
 }
