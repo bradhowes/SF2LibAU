@@ -1,8 +1,8 @@
 import AVFAudio
 import XCTest
-// import AUv3Support
 @testable import SF2LibAU
 
+@MainActor
 final class SF2LibAUTests: XCTestCase {
   static let sampleRate: Double = 48_000.0
   static let audioFormat: AVAudioFormat = .init(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 2,
@@ -34,11 +34,6 @@ final class SF2LibAUTests: XCTestCase {
     au.maximumFramesToRender = self.frameCount
     playedAudioExpectation = nil
     player = nil
-  }
-
-  override func tearDown() {
-    au = nil
-    stereoBuffer = nil
   }
 
   func testInitDoesNotThrow() throws {
@@ -192,7 +187,7 @@ final class SF2LibAUTests: XCTestCase {
   }
 }
 
-extension SF2LibAUTests: AVAudioPlayerDelegate {
+extension SF2LibAUTests: @preconcurrency AVAudioPlayerDelegate {
 
   func loadSF2(index: Int, preset: Int) throws {
     let paths = getSF2Resources()
@@ -345,3 +340,5 @@ extension FourCharCode: @retroactive ExpressibleByStringLiteral {
     self = FourCharCode(stringLiteral: value)
   }
 }
+
+extension AVAudioFormat: @retroactive @unchecked Sendable {}

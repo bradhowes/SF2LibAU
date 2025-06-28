@@ -1,14 +1,15 @@
 {
+  "originHash" : "13f9317232fa7cddc28a5753ed506a6556aa21c9608ff5e3784528e051e4f1d0",
   "pins" : [
     {
       "identity" : "sf2lib",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/bradhowes/SF2Lib",
       "state" : {
-        "revision" : "5e6688d336d2ee7efb7c839de71fbd56ed7482cc",
-        "version" : "6.5.0"
+        "revision" : "73112fd9c82a23f832168ebb6e557cf1f065f253",
+        "version" : "6.5.1"
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }
