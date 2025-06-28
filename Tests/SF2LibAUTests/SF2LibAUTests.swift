@@ -199,6 +199,36 @@ final class SF2LibAUTests: XCTestCase {
       XCTAssertEqual(0, doRender())
     }
   }
+
+  func testGetFullState() throws {
+    try prepareToRender(index: 0, preset: 0) {
+      let state = au.fullState
+      XCTAssertNotNil(state)
+    }
+  }
+
+  func testSetFullState() throws {
+    try prepareToRender(index: 0, preset: 0) {
+      let state = au.fullState
+      XCTAssertNotNil(state)
+      au.fullState = state
+      XCTAssertTrue(au.supportsUserPresets)
+    }
+  }
+
+  func testGetCurrentPreset() throws {
+    try prepareToRender(index: 0, preset: 0) {
+      let state = au.currentPreset
+      XCTAssertNil(state)
+    }
+  }
+
+  func testSetCurrentPreset() throws {
+    try prepareToRender(index: 0, preset: 0) {
+      let state = au.currentPreset
+      au.currentPreset = state
+    }
+  }
 }
 
 extension SF2LibAUTests: @preconcurrency AVAudioPlayerDelegate {
