@@ -1,11 +1,11 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.1
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
 let package = Package(
   name: "SF2LibAU",
-  platforms: [.iOS(.v13), .macOS(.v10_15), .tvOS(.v12)],
+  platforms: [.iOS(.v16), .macOS(.v14), .tvOS(.v16)],
   products: [.library(name: "SF2LibAU", targets: ["SF2LibAU"])],
   dependencies: [
     .package(url: "https://github.com/bradhowes/SF2Lib", from: "6.5.0"),
@@ -20,5 +20,5 @@ let package = Package(
                 resources: [.process("Resources")],
                 swiftSettings: [.interoperabilityMode(.Cxx)])
   ],
-  cxxLanguageStandard: .cxx20
+  cxxLanguageStandard: .cxx2b
 )
