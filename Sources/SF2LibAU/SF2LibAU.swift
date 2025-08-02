@@ -9,23 +9,30 @@ import Engine
  AUv3 component for SF2Lib engine.
  */
 public final class SF2LibAU: AUAudioUnit {
-  private let log: OSLog
+  private let log = OSLog(subsystem: "com.braysoftware.SF2LibAU", category: "SF2LibAU")
+
   private var _audioUnitName: String?
   private var _audioUnitShortName: String?
   private var _currentPreset: AUAudioUnitPreset?
   private var engine: SF2Engine
 
-  private var dryBus: AUAudioUnitBus!
-  private var reverbSendBus: AUAudioUnitBus!
-  private var chorusSendBus: AUAudioUnitBus!
+  private var dryBus: AUAudioUnitBus
+  private var reverbSendBus: AUAudioUnitBus
+  private var chorusSendBus: AUAudioUnitBus
 
   // We have no inputs
   private lazy var _inputBusses: AUAudioUnitBusArray = AUAudioUnitBusArray(
-    audioUnit: self, busType: .input, busses: [])
+    audioUnit: self,
+    busType: .input,
+    busses: []
+  )
 
   // We have three outputs -- dry, reverb, chorus
   private lazy var _outputBusses: AUAudioUnitBusArray = AUAudioUnitBusArray(
-    audioUnit: self, busType: .output, busses: [dryBus!, reverbSendBus!, chorusSendBus!])
+    audioUnit: self,
+    busType: .output,
+    busses: [dryBus, reverbSendBus, chorusSendBus]
+  )
 
   public override var inputBusses: AUAudioUnitBusArray { return _inputBusses }
   public override var outputBusses: AUAudioUnitBusArray { return _outputBusses }
@@ -42,13 +49,15 @@ public final class SF2LibAU: AUAudioUnit {
    */
   public override init(componentDescription: AudioComponentDescription,
                        options: AudioComponentInstantiationOptions = []) throws {
-    let loggingSubsystem = "com.braysoftware"
-    let log = OSLog(subsystem: loggingSubsystem, category: "SF2LibAU")
-    self.log = log
-
-    os_log(.debug, log: log, "init - flags: %d man: %d type: sub: %d", componentDescription.componentFlags,
-           componentDescription.componentManufacturer, componentDescription.componentType,
-           componentDescription.componentSubType)
+    os_log(
+      .info,
+      log: log,
+      "init - flags: %d man: %d type: sub: %d",
+      componentDescription.componentFlags,
+      componentDescription.componentManufacturer,
+      componentDescription.componentType,
+      componentDescription.componentSubType
+    )
 
     // This may be too early to do this. I *think* the ideal flow is to postpone this kind of format determination
     // until `allocateRenderResources` is called, at which point we query the output bus for the format and use that
@@ -60,21 +69,13 @@ public final class SF2LibAU: AUAudioUnit {
       throw Failure.invalidFormat
     }
 
-    self.engine = SF2Engine(format.sampleRate, getVoiceCount())
+    engine = SF2Engine(format.sampleRate, getVoiceCount())
+    dryBus = try Self.createBus(name: "dry", format: format)
+    reverbSendBus = try Self.createBus(name: "reverbSend", format: format)
+    chorusSendBus = try Self.createBus(name: "chorusSend", format: format)
 
-    os_log(.debug, log: log, "super.init")
-    do {
-      try super.init(componentDescription: componentDescription, options: options)
-    } catch {
-      os_log(.error, log: log, "failed to initialize AUAudioUnit - %{public}s", error.localizedDescription)
-      throw error
-    }
-
-    dryBus = try createBus(name: "dry", format: format)
-    reverbSendBus = try createBus(name: "reverbSend", format: format)
-    chorusSendBus = try createBus(name: "chorusSend", format: format)
-
-    os_log(.debug, log: log, "init - done")
+    try super.init(componentDescription: componentDescription, options: options)
+    os_log(.info, log: log, "init - done")
   }
 }
 
@@ -117,11 +118,11 @@ extension SF2LibAU {
   }
 
   func createLoadFileUsePreset(path: String, preset: Int) -> Array<UInt8> {
-    return Array(SF2Engine.createLoadFileUsePreset(std.string(path), preset))
+    Array(SF2Engine.createLoadFileUsePreset(std.string(path), preset))
   }
 
   func createUsePreset(preset: Int) -> Array<UInt8> {
-    return Array(SF2Engine.createUsePreset(preset))
+    Array(SF2Engine.createUsePreset(preset))
   }
 
   func createResetCommand() -> Array<UInt8> {
@@ -129,21 +130,21 @@ extension SF2LibAU {
   }
 
   func createUseBankProgram(bank: UInt16, program: UInt8) -> Array<UInt8> {
-    return Array(SF2Engine.createUseBankProgram(bank, program))
+    Array(SF2Engine.createUseBankProgram(bank, program))
   }
 
   func createChannelMessage(message: UInt8, value: UInt8) -> Array<UInt8> {
-    return Array(SF2Engine.createChannelMessage(message, value))
+    Array(SF2Engine.createChannelMessage(message, value))
   }
 
   var activePresetName: String { String(engine.activePresetName()).trimmingCharacters(in: .whitespaces) }
-  var activeVoiceCount: Int { return engine.activeVoiceCount() }
+  var activeVoiceCount: Int { engine.activeVoiceCount() }
 
-  var monophonicModeEnabled: Bool { return engine.monophonicModeEnabled(); }
-  var polyphonicModeEnabled: Bool { return engine.polyphonicModeEnabled(); }
-  var oneVoicePerKeyModeEnabled: Bool { return engine.oneVoicePerKeyModeEnabled(); }
-  var retriggerModeEnabled: Bool { return engine.retriggerModeEnabled(); }
-  var portamentoModeEnabled: Bool { return engine.portamentoModeEnabled() }
+  var monophonicModeEnabled: Bool { engine.monophonicModeEnabled(); }
+  var polyphonicModeEnabled: Bool { engine.polyphonicModeEnabled(); }
+  var oneVoicePerKeyModeEnabled: Bool { engine.oneVoicePerKeyModeEnabled(); }
+  var retriggerModeEnabled: Bool { engine.retriggerModeEnabled(); }
+  var portamentoModeEnabled: Bool { engine.portamentoModeEnabled() }
 
   func sendMIDI(bytes: Array<UInt8>, when: AUEventSampleTime = .min, cable: UInt8 = 0) -> Bool {
     guard let block = scheduleMIDIEventBlock else { return false }
@@ -154,15 +155,10 @@ extension SF2LibAU {
 
 extension SF2LibAU {
 
-  private func createBus(name: String, format: AVAudioFormat) throws -> AUAudioUnitBus {
-    do {
-      let bus = try AUAudioUnitBus(format: format)
-      bus.name = name
-      return bus
-    } catch {
-      os_log(.error, log: log, "failed to create %{public}s bus - %{public}s", error.localizedDescription)
-      throw Failure.creatingBus(name: name)
-    }
+  private static func createBus(name: String, format: AVAudioFormat) throws -> AUAudioUnitBus {
+    let bus = try AUAudioUnitBus(format: format)
+    bus.name = name
+    return bus
   }
 
   private func updateShortName() {
@@ -201,7 +197,7 @@ extension SF2LibAU {
   }
 
   public override func allocateRenderResources() throws {
-    os_log(.debug, log: log, "allocateRenderResources BEGIN - outputBusses: %{public}d", outputBusses.count)
+    os_log(.info, log: log, "allocateRenderResources BEGIN - outputBusses: %{public}d", outputBusses.count)
 
     // We assume that someone is using the `dryBus` and has it connected so we can query it to get the proper audio
     // processing format to use for the best performance and quality.
@@ -217,18 +213,12 @@ extension SF2LibAU {
     }
 
     // Per doc, we must invoke the original method we are overriding.
-    do {
-      try super.allocateRenderResources()
-    } catch {
-      os_log(.error, log: log, "allocateRenderResources failed - %{public}s", error.localizedDescription)
-      throw error
-    }
-
-    os_log(.debug, log: log, "allocateRenderResources END")
+    try super.allocateRenderResources()
+    os_log(.info, log: log, "allocateRenderResources END")
   }
 
   public override func deallocateRenderResources() {
-    os_log(.debug, log: log, "deallocateRenderResources")
+    os_log(.info, log: log, "deallocateRenderResources")
     super.deallocateRenderResources()
   }
 
@@ -242,6 +232,7 @@ extension SF2LibAU {
   public override var internalRenderBlock: AUInternalRenderBlock {
     let bus: NSInteger = 0;
     // Make private 'copy' of the engine for capturing by the block. This mirrors what we would do with Objective-C.
+    // Copies all share the same underlying implementation object.
     var engine = self.engine
     return {flags, timestamp, frameCount, _, output, realtimeEventListHead, pullInputBlock in
       engine.processAndRender(timestamp, frameCount, bus, output, realtimeEventListHead,
