@@ -5,16 +5,23 @@ import XCTest
 @MainActor
 final class SF2LibAUTests: XCTestCase {
   static let sampleRate: Double = 48_000.0
-  static let audioFormat: AVAudioFormat = .init(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 2,
-                                                interleaved: false)!
+  static let audioFormat: AVAudioFormat = .init(
+    commonFormat: .pcmFormatFloat32,
+    sampleRate: sampleRate,
+    channels: 2,
+    interleaved: false
+  )!
 
   // Make the number of frames to render the same as the sample rate to render 1 second of audio samples
   let frameCount: AVAudioFrameCount = .init(sampleRate) * 2
 
-  let audioComponentDescription: AudioComponentDescription = .init(componentType: FourCharCode("aumu"),
-                                                                   componentSubType: FourCharCode("sf2L"),
-                                                                   componentManufacturer: FourCharCode("bray"),
-                                                                   componentFlags: 0, componentFlagsMask: 0)
+  let audioComponentDescription: AudioComponentDescription = .init(
+    componentType: FourCharCode("aumu"),
+    componentSubType: FourCharCode("Sf2L"),
+    componentManufacturer: FourCharCode("BRay"),
+    componentFlags: 0,
+    componentFlagsMask: 0
+  )
   let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: Double(sampleRate), channels: 2,
                              interleaved: false)!
   var stereoBuffer: AVAudioPCMBuffer!
@@ -63,6 +70,17 @@ final class SF2LibAUTests: XCTestCase {
     try au.allocateRenderResources()
     XCTAssertTrue(au.renderResourcesAllocated)
     XCTAssertEqual("", au.activePresetName)
+  }
+
+  func testCanDeallocateResources() throws {
+    let busses = au.outputBusses
+    for index in 0..<busses.count {
+      try busses[index].setFormat(self.format)
+    }
+    try au.allocateRenderResources()
+    XCTAssertTrue(au.renderResourcesAllocated)
+    au.deallocateRenderResources()
+    XCTAssertFalse(au.renderResourcesAllocated)
   }
 
   func testCanRender() throws {
@@ -259,6 +277,8 @@ final class SF2LibAUTests: XCTestCase {
     try prepareToRender(index: 0, preset: 0) {
       au.audioUnitName = "blah"
       XCTAssertEqual("blah", au.audioUnitName)
+      au.audioUnitName = nil
+      XCTAssertNil(au.audioUnitName)
     }
   }
 }
@@ -267,7 +287,6 @@ extension SF2LibAUTests: @preconcurrency AVAudioPlayerDelegate {
 
   func loadSF2(index: Int, preset: Int) throws {
     let paths = getSF2Resources()
-    print(paths)
     try au.allocateRenderResources()
     let path = paths[index].standardizedFileURL.absoluteString
     XCTAssertTrue(au.sendLoadFileUsePreset(path: path, preset: preset))
