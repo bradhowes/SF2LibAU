@@ -1,13 +1,22 @@
 {
-  "originHash" : "8f2a0e0ea74e2657f4bcf3f236a02d43f510b5d3818532a3a7bde2d6a55b8e96",
+  "originHash" : "a3bf1f25eff80ef3f9137861d89b6ce2d73962001e8361ca0edb449c2154642d",
   "pins" : [
     {
       "identity" : "dspheaders",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/bradhowes/DSPHeaders",
       "state" : {
-        "revision" : "b5840aaf73075be77bf506db3fcae4fc7e276021",
-        "version" : "1.0.5"
+        "revision" : "e4329acb938d5a12c55e12134113d043258b4423",
+        "version" : "1.0.6"
+      }
+    },
+    {
+      "identity" : "sf2lib",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/bradhowes/SF2Lib",
+      "state" : {
+        "revision" : "7cb86f923405951b9e38ffc79b222b4b16abb9d2",
+        "version" : "6.7.0"
       }
     }
   ],

@@ -42,8 +42,8 @@ struct AVAudioUnitTests {
   }
 
   @Test("can play MIDI notes")
-  func canJoinEngine() async throws {
-    #expect(try loadSF2(au: auAudioUnit, index: 0, preset: 14))
+  func canPlayMIDINotes() async throws {
+    #expect(try loadSF2(au: auAudioUnit, index: 0, preset: 13))
     avMidiInstrument.startNote(76, withVelocity: 127, onChannel: 0)
     try await Task.sleep(for: .milliseconds(300))
     avMidiInstrument.stopNote(76, onChannel: 0)
