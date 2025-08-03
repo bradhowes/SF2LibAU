@@ -81,6 +81,17 @@ public final class SF2LibAU: AUAudioUnit {
 
 extension SF2LibAU {
 
+  public override var parameterTree: AUParameterTree? {
+    get {
+      engine.getParameterTree()
+    }
+    set {
+      fatalError("unable to set parameter tree")
+    }
+  }
+}
+extension SF2LibAU {
+
   func sendLoadFileUsePreset(path: String, preset: Int) -> Bool {
     sendMIDI(bytes: Array(createLoadFileUsePreset(path: path, preset: preset)))
   }
