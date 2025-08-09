@@ -92,38 +92,47 @@ extension SF2LibAU {
 }
 extension SF2LibAU {
 
+  @discardableResult
   public func sendLoadFileUsePreset(path: String, preset: Int) -> Bool {
     sendMIDI(bytes: Array(createLoadFileUsePreset(path: path, preset: preset)))
   }
 
+  @discardableResult
   public func sendUsePreset(preset: Int) -> Bool {
     sendMIDI(bytes: createUsePreset(preset: preset))
   }
 
+  @discardableResult
   public func sendReset() -> Bool {
     sendMIDI(bytes: Array(createResetCommand()))
   }
 
+  @discardableResult
   public func sendUseBankProgram(bank: UInt16, program: UInt8) -> Bool {
     sendMIDI(bytes: Array(createUseBankProgram(bank: bank, program: program)))
   }
 
+  @discardableResult
   public func sendChannelMessage(message: UInt8, value: UInt8 = 0) -> Bool {
     sendMIDI(bytes: createChannelMessage(message: message, value: value))
   }
 
+  @discardableResult
   public func sendAllNotesOff() -> Bool {
     sendMIDI(bytes: Array(SF2Engine.createAllNotesOff()))
   }
 
+  @discardableResult
   public func sendAllSoundOff() -> Bool {
     sendMIDI(bytes: Array(SF2Engine.createAllSoundOff()))
   }
 
+  @discardableResult
   public func sendNoteOn(note: UInt8, velocity: UInt8 = 0x64) -> Bool {
     sendMIDI(bytes: [0x90, note, velocity])
   }
 
+  @discardableResult
   public func sendNoteOff(note: UInt8) -> Bool {
     sendMIDI(bytes: [0x80, note, 0x00])
   }
