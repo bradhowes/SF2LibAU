@@ -92,72 +92,72 @@ extension SF2LibAU {
 }
 extension SF2LibAU {
 
-  func sendLoadFileUsePreset(path: String, preset: Int) -> Bool {
+  public func sendLoadFileUsePreset(path: String, preset: Int) -> Bool {
     sendMIDI(bytes: Array(createLoadFileUsePreset(path: path, preset: preset)))
   }
 
-  func sendUsePreset(preset: Int) -> Bool {
+  public func sendUsePreset(preset: Int) -> Bool {
     sendMIDI(bytes: createUsePreset(preset: preset))
   }
 
-  func sendReset() -> Bool {
+  public func sendReset() -> Bool {
     sendMIDI(bytes: Array(createResetCommand()))
   }
 
-  func sendUseBankProgram(bank: UInt16, program: UInt8) -> Bool {
+  public func sendUseBankProgram(bank: UInt16, program: UInt8) -> Bool {
     sendMIDI(bytes: Array(createUseBankProgram(bank: bank, program: program)))
   }
 
-  func sendChannelMessage(message: UInt8, value: UInt8 = 0) -> Bool {
+  public func sendChannelMessage(message: UInt8, value: UInt8 = 0) -> Bool {
     sendMIDI(bytes: createChannelMessage(message: message, value: value))
   }
 
-  func sendAllNotesOff() -> Bool {
+  public func sendAllNotesOff() -> Bool {
     sendMIDI(bytes: Array(SF2Engine.createAllNotesOff()))
   }
 
-  func sendAllSoundOff() -> Bool {
+  public func sendAllSoundOff() -> Bool {
     sendMIDI(bytes: Array(SF2Engine.createAllSoundOff()))
   }
 
-  func sendNoteOn(note: UInt8, velocity: UInt8 = 0x64) -> Bool {
+  public func sendNoteOn(note: UInt8, velocity: UInt8 = 0x64) -> Bool {
     sendMIDI(bytes: [0x90, note, velocity])
   }
 
-  func sendNoteOff(note: UInt8) -> Bool {
+  public func sendNoteOff(note: UInt8) -> Bool {
     sendMIDI(bytes: [0x80, note, 0x00])
   }
 
-  func createLoadFileUsePreset(path: String, preset: Int) -> Array<UInt8> {
+  public func createLoadFileUsePreset(path: String, preset: Int) -> Array<UInt8> {
     Array(SF2Engine.createLoadFileUsePreset(std.string(path), preset))
   }
 
-  func createUsePreset(preset: Int) -> Array<UInt8> {
+  public func createUsePreset(preset: Int) -> Array<UInt8> {
     Array(SF2Engine.createUsePreset(preset))
   }
 
-  func createResetCommand() -> Array<UInt8> {
+  public func createResetCommand() -> Array<UInt8> {
     return Array(SF2Engine.createResetCommand())
   }
 
-  func createUseBankProgram(bank: UInt16, program: UInt8) -> Array<UInt8> {
+  public func createUseBankProgram(bank: UInt16, program: UInt8) -> Array<UInt8> {
     Array(SF2Engine.createUseBankProgram(bank, program))
   }
 
-  func createChannelMessage(message: UInt8, value: UInt8) -> Array<UInt8> {
+  public func createChannelMessage(message: UInt8, value: UInt8) -> Array<UInt8> {
     Array(SF2Engine.createChannelMessage(message, value))
   }
 
-  var activePresetName: String { String(engine.activePresetName()).trimmingCharacters(in: .whitespaces) }
-  var activeVoiceCount: Int { engine.activeVoiceCount() }
+  public var activePresetName: String { String(engine.activePresetName()).trimmingCharacters(in: .whitespaces) }
+  public var activeVoiceCount: Int { engine.activeVoiceCount() }
 
-  var monophonicModeEnabled: Bool { engine.monophonicModeEnabled(); }
-  var polyphonicModeEnabled: Bool { engine.polyphonicModeEnabled(); }
-  var oneVoicePerKeyModeEnabled: Bool { engine.oneVoicePerKeyModeEnabled(); }
-  var retriggerModeEnabled: Bool { engine.retriggerModeEnabled(); }
-  var portamentoModeEnabled: Bool { engine.portamentoModeEnabled() }
+  public var monophonicModeEnabled: Bool { engine.monophonicModeEnabled(); }
+  public var polyphonicModeEnabled: Bool { engine.polyphonicModeEnabled(); }
+  public var oneVoicePerKeyModeEnabled: Bool { engine.oneVoicePerKeyModeEnabled(); }
+  public var retriggerModeEnabled: Bool { engine.retriggerModeEnabled(); }
+  public var portamentoModeEnabled: Bool { engine.portamentoModeEnabled() }
 
-  func sendMIDI(bytes: Array<UInt8>, when: AUEventSampleTime = .min, cable: UInt8 = 0) -> Bool {
+  public func sendMIDI(bytes: Array<UInt8>, when: AUEventSampleTime = .min, cable: UInt8 = 0) -> Bool {
     guard let block = scheduleMIDIEventBlock else { return false }
     block(when, cable, bytes.count, bytes)
     return true
