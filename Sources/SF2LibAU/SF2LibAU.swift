@@ -2,8 +2,8 @@
 
 import AudioToolbox
 import CoreAudioKit
-import os
 import Engine
+import OSLog
 
 /**
  AUv3 component for SF2Lib engine.
@@ -159,6 +159,7 @@ extension SF2LibAU {
 
   public func sendMIDI(bytes: Array<UInt8>, when: AUEventSampleTime = .min, cable: UInt8 = 0) -> Bool {
     guard let block = scheduleMIDIEventBlock else { return false }
+    os_log(.info, log: log, "sendMIDI %d bytes", bytes.count)
     block(when, cable, bytes.count, bytes)
     return true
   }
